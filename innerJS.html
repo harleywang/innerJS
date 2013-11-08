@@ -1,0 +1,134 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312" />
+<title>InnerJS</title>
+<style>
+textarea, #mainBox{ margin:10px 0;}
+textarea{ display:block; width:100%;height:150px;}
+#mainBox{ border-top:2px solid #369; background:#EFEFEF;}
+</style>
+<script type="text/javascript">
+var InnerJS = {
+	set:function(element, str){
+		element.innerHTML = '<div style="display:none">InnerJS</div>'+str;
+		element.removeChild( element.children[0] );
+		
+		var scripts = element.getElementsByTagName('script');
+		if(scripts.length > 0){
+			this.task = []
+			for(var i=0, len=scripts.length; i<len; i++){
+				this.task.push(scripts[i]);
+			}
+			this.overwrite();
+			this.run();
+		}
+	},
+	overwrite:function(){
+		var that = this;
+		document.write = function(str){
+			that.insertHTML(that.exeScript, "beforeBegin", str);
+		};
+		document.writeln = function(str){
+			that.insertHTML(that.exeScript, "beforeBegin", str+"\n");
+		};
+	},
+	run:function(){
+		var script = this.task.shift();
+		if(!script)return;
+
+		var resObj = document.createElement('script');
+		resObj.type = "text/javascript";
+		var that = this;
+		if(script.src){
+			if (resObj.readyState){
+				resObj.onreadystatechange = function(){
+					if(resObj.readyState == "loaded" || resObj.readyState == "complete"){
+						resObj.onreadystatechange = null;
+						that.run();
+					}
+				};
+			}else {
+				resObj.onload = function(){
+					that.run();
+				};
+			}
+			resObj.src = script.src;
+		}else{
+			resObj.text = script.text;
+		}
+		this.exeScript = resObj;
+		script.parentNode.replaceChild(resObj, script);
+		if(!script.src){
+			that.run();
+		}
+	},
+	insertHTML:function (ele, falg, html) {
+		if (ele.insertAdjacentHTML) {
+			ele.insertAdjacentHTML(falg, html)
+		}else{
+			var range = ele.ownerDocument.createRange();
+			falg = falg.toUpperCase();
+			if (falg == "AFTERBEGIN" || falg == "BEFOREEND") {
+				range.selectNodeContents(ele);
+				range.collapse(falg == "AFTERBEGIN")
+			} else {
+				var f = falg == "BEFOREBEGIN";
+				range[f ? "setStartBefore" : "setEndAfter"](ele);
+				range.collapse(f)
+			}
+			range.insertNode(range.createContextualFragment(html))
+		}
+	}
+};
+
+
+
+
+
+
+
+function createHtml(){
+	var mainBox = document.getElementById('mainBox');
+	var content = document.getElementById('content');
+
+	InnerJS.set(mainBox, content.value);
+}
+function testIE6(){
+	var mainBox = document.getElementById('mainBox');
+	mainBox.innerHTML = '';
+}
+</script>
+</head>
+<body>
+<h2>InnerJS</h2>
+<div>
+<textarea id="content">
+    <div>ko</div><img style="float:right;margin-right:20px;" src="http://ww4.sinaimg.cn/large/960bda11tw1dnw504ga3vj.jpg" height="200" />
+    safsadfsadf
+    <h1>Hello World!</h1><script>alert("终于实现了");</script>
+    <h2>yes</h2>
+    <script>var abc="Hello InnerJS";
+	(function(){
+		alert(abc);
+		document.write("sdfsdf");
+		document.writeln("OKO");
+		document.write("My OK");
+	})();
+    </script>
+    <script type="text/javascript" src="abc.js"></script>
+    <p id="text"></p>
+    <script type="text/javascript">
+	var text = document.getElementById('text');
+	if(text && Haley){
+		text.innerHTML = Haley.Name;
+	}
+    </script>
+</textarea>
+</div>
+<input type="button" onclick="createHtml()" value="Create!" />
+<input type="button" onclick="testIE6()" value="Clear!" />
+<div id="mainBox"></div>
+
+</body>
+</html>
